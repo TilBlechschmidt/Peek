@@ -2,48 +2,79 @@
 //  Parser.swift
 //  
 //
-//  Created by Til Blechschmidt on 22.01.21.
+//  Created by Til Blechschmidt on 21.02.21.
 //
 
 import Foundation
 
-public struct Parser {
+// TODO: When reading a document initially, perform some "cleaning"
+// -> Remove leading and trailing blank lines
+// -> Replace tabs with four whitespaces
+
+struct Parser {
     enum Error: Swift.Error {
         case unableToParseDocument
     }
 
-    private(set) var blockTypes: [ReadableBlock.Type]
+    static let defaultParsers: [NodeVariantParser] = [
+        // BlockNodes
+        Container.Parser(variant: .admonition),
+        Container.Parser(variant: .blockquote),
+        CodeBlock.Parser(),
+        List.Parser(),
+        ThematicBreak.Parser(),
+        Heading.Parser(),
+        Paragraph.Parser(),
+        // InlineNodes
+        CodeSpan.Parser()
+        ] + Emphasis.parsers + [
+        Text.Parser(),
+        VerbatimText.Parser()
+    ]
 
-    init(blockTypes: [ReadableBlock.Type] = [Heading.self, Paragraph.self]) {
-        self.blockTypes = blockTypes
+    private(set) var trimNewlines: Bool
+    private(set) var permittedVariants: VariantRestriction
+    private(set) var parsers: [NodeVariantParser]
+
+    public init(parsers: [NodeVariantParser] = defaultParsers, permittedVariants: VariantRestriction = .indifferent, trimNewlines: Bool = true) {
+        self.trimNewlines = trimNewlines
+        self.permittedVariants = permittedVariants
+        self.parsers = parsers
     }
 
-    public func parse(_ markdown: String) throws -> [Block] {
-        var reader = Reader(string: markdown)
-        var blocks: [Block] = []
+    public func parse(_ tokens: [Token]) throws -> [Node] {
+        var reader = TokenReader(tokens: tokens)
+        var nodes: [Node] = []
 
         while !reader.didReachEnd {
-            // Skip any blank lines between blocks
-            // TODO: This also removes any leading whitespaces from blocks.
-            //       Some blocks don't allow an infinite number of leading whitespaces!
-            reader.discardWhitespacesAndNewlines()
-            guard !reader.didReachEnd else { break }
+            // Trim any trailing .lineFeed or .blankLine after the previous node
+            // TODO Figure out if this trimNewlines property solves the "lineBreak" crisis :D
+            if trimNewlines {
+                reader.readMultiple(of: [.lineFeed])
+            }
 
-            // Go through all block types and try parsing them
-            guard let block = try? readBlock(from: &reader) else { throw Error.unableToParseDocument }
-            blocks.append(block)
+            // If the trimming caused the reader to reach EOF, prematurely exit
+            if reader.didReachEnd {
+                break
+            }
+
+            guard let node = try? readNode(from: &reader) else { throw Error.unableToParseDocument }
+            nodes.append(node)
         }
 
-        return blocks
+        return nodes
     }
 
-    private func readBlock(from reader: inout Reader) throws -> Block {
-        for blockType in blockTypes {
-            if let parsed = try? blockType.readOrRewind(using: &reader) {
-                return parsed
+    private func readNode(from reader: inout TokenReader) throws -> Node {
+        for parser in parsers {
+            let allowedChildren = permittedVariants.intersection(parser.childVariantRestriction)
+            let childParser = Self(permittedVariants: allowedChildren, trimNewlines: parser.trimNewlinesInChildren)
+
+            if let node = try? parser.readOrRewind(using: &reader, permittedVariants, childParser) {
+                return node
             }
         }
 
-        throw Reader.Error()
+        throw TokenReader.Error()
     }
 }

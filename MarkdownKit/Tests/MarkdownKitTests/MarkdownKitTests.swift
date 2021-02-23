@@ -6,26 +6,42 @@
 //
 
 import XCTest
+import Yams
 @testable import MarkdownKit
 
 final class MarkdownKitTests: XCTestCase {
-    func testParseParagraph() {
-        let parser = Parser()
-        let parsed = try! parser.parse("""
-        # H1
-        Hello world!
-
-        A second paragraph!
-        """)
-
-        XCTAssertEqualMarkdown(parsed, [
-            Heading(level: 1, rawContent: "H1"),
-            Paragraph(text: "Hello world!"),
-            Paragraph(text: "A second paragraph!")
-        ])
-    }
-
-    static var allTests = [
-        ("testParseParagraph", testParseParagraph),
-    ]
+//    func testParseParagraph() throws {
+//        let parser = ParserOld(blockTypes: [ParagraphOld.self])
+//        let parsed = try parser.parse("""
+//        Hello world!
+//
+//        A second paragraph!
+//        """)
+//
+//        XCTAssertEqualMarkdown(parsed, [
+//            ParagraphOld(text: "Hello world!"),
+//            ParagraphOld(text: "A second paragraph!")
+//        ])
+//    }
+//
+//    func testMetadataParse() throws {
+//        let yaml = "a: 1\nb: 2"
+//
+//        let parser = ParserOld()
+//        let parsed = try parser.parse("""
+//        ---
+//        \(yaml)
+//        ---
+//        """)
+//
+//        let node = try Yams.compose(yaml: yaml)
+//
+//        XCTAssertEqualMarkdown(parsed, [
+//            MetadataOld(node: node!)
+//        ])
+//    }
+//
+//    static var allTests = [
+//        ("testParseParagraph", testParseParagraph),
+//    ]
 }
