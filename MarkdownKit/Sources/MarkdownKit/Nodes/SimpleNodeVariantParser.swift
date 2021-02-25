@@ -19,8 +19,9 @@ extension SimpleNodeVariantParser {
         let (variant, childTokens) = try self.read(using: &reader)
         try require(variantRestriction.allows(variant: variant))
 
+        let consumedTokens = (try reader.tokens(since: previousReader)).filter { !childTokens.contains($0) }
         let childNodes = try childParser.parse(childTokens)
 
-        return Node(tokens: try reader.tokens(since: previousReader), variant: variant, children: childNodes)
+        return Node(consumedTokens: consumedTokens, variant: variant, children: childNodes)
     }
 }

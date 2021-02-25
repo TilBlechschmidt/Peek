@@ -48,7 +48,7 @@ class ContainerASTNode: ASTNodesConvertible, ASTNode {
     }
 
     func makeNode() -> Node {
-        Node(tokens: [], variant: nodeVariant, children: children.map { $0.makeNode() })
+        Node(consumedTokens: [], variant: nodeVariant, children: children.map { $0.makeNode() })
     }
 }
 
@@ -160,13 +160,13 @@ class Text: ASTNodesConvertible, ASTNode {
     }
 
     func makeNode() -> Node {
-        Node(tokens: [], variant: MarkdownKit.Text(content: content), children: [])
+        Node(consumedTokens: [], variant: MarkdownKit.Text(content: content), children: [])
     }
 }
 
 class VerbatimText: Text {
     override func makeNode() -> Node {
-        Node(tokens: [], variant: MarkdownKit.VerbatimText(content: content), children: [])
+        Node(consumedTokens: [], variant: MarkdownKit.VerbatimText(content: content), children: [])
     }
 }
 

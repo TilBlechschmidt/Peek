@@ -11,12 +11,12 @@ import Foundation
 // -> Remove leading and trailing blank lines
 // -> Replace tabs with four whitespaces
 
-struct Parser {
+public struct Parser {
     enum Error: Swift.Error {
         case unableToParseDocument
     }
 
-    static let defaultParsers: [NodeVariantParser] = [
+    public static let defaultParsers: [NodeVariantParser] = [
         // BlockNodes
         Container.Parser(variant: .admonition),
         Container.Parser(variant: .blockquote),

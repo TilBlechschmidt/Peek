@@ -366,7 +366,15 @@ final class LexerTests: XCTestCase {
 //        }
     }
 
-    // TODO Build FunctionBuilder based testing framework where you define the expected AST and give it an input string
+    func testPerformance() throws {
+        let input: Substring = "Hello *world*! Now the *big* /question/ here _is_ just =why= it is so incredibly `slow`! Hello *world*! Now the *big* /question/ here _is_ just =why= it is so incredibly `slow`! Hello *world*! Now the *big* /question/ here _is_ just =why= it is so incredibly `slow`! Hello *world*! Now the *big* /question/ here _is_ just =why= it is so incredibly `slow`! Hello *world*! Now the *big* /question/ here _is_ just =why= it is so incredibly `slow`! Hello *world*! Now the *big* /question/ here _is_ just =why= it is so incredibly `slow`! Hello *world*!"
+
+        var tokens: [Token] = []
+        self.measure {
+            tokens = Lexer().tokenize(string: input)
+            let _ = try! Parser(permittedVariants: .inlineVariants).parse(tokens)
+        }
+    }
 
     static var allTests = [
         // TODO Add all test cases

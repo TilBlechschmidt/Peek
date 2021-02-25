@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol NodeVariant: CustomDebugStringConvertible {
+public protocol NodeVariant: CustomDebugStringConvertible {
     func isEqual(to other: NodeVariant) -> Bool
 }
 
@@ -23,7 +23,7 @@ protocol BlockNodeVariant: NodeVariant {}
 // MARK: Custom equatable for NodeVariant and [NodeVariant]
 
 extension NodeVariant where Self: Equatable {
-    func isEqual(to other: NodeVariant) -> Bool {
+    public func isEqual(to other: NodeVariant) -> Bool {
         if let o = other as? Self {
             return o == self
         } else {
@@ -32,7 +32,7 @@ extension NodeVariant where Self: Equatable {
     }
 }
 
-func == (a: [NodeVariant], b: [NodeVariant]) -> Bool {
+public func == (a: [NodeVariant], b: [NodeVariant]) -> Bool {
     guard a.count == b.count else { return false }
 
     for i in 0..<a.count {

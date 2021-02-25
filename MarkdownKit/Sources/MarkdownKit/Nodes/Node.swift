@@ -7,13 +7,15 @@
 
 import Foundation
 
-struct Node: CustomDebugStringConvertible {
-    var debugDescription: String {
+public struct Node: CustomDebugStringConvertible {
+    public var debugDescription: String {
         let childStrings = children.map { $0.debugDescription.replacingOccurrences(of: "\n", with: "\n\t") }.joined(separator: "\n\t")
         return "\(variant.debugDescription)\(childStrings.isEmpty ? "" : " {\n\t\(childStrings)\n}")"
     }
 
-    let tokens: ArraySlice<Token>
-    let variant: NodeVariant
-    let children: [Node]
+    /// Tokens that have been consumed by the variants parser.
+    /// Does not include Tokens which are parsed by children!
+    public let consumedTokens: [Token]
+    public let variant: NodeVariant
+    public let children: [Node]
 }

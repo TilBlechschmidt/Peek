@@ -10,6 +10,7 @@ import MarkdownKit
 
 class FancyTextStorage: NSTextStorage {
     let backingStore = NSMutableAttributedString()
+    var cursorPosition: Int = 0
 
     override var string: String {
         backingStore.string
@@ -37,31 +38,70 @@ class FancyTextStorage: NSTextStorage {
         endEditing()
     }
 
-    func applyStylesToRange(searchRange: NSRange) {
-        let range = Range<String.Index>(searchRange, in: backingStore.string)!
-        let substring = backingStore.string[range]
+    func applyStyles(for node: Node, baseStyles: FormattingOptions = .init()) {
+        if let formattable = node.variant as? Formattable {
+            // TODO This is really inefficient and ugly.
+            let cursorIsWithin = node.isPositionWithinNode(string.index(string.startIndex, offsetBy: cursorPosition)) || (cursorPosition > 0 ? node.isPositionWithinNode(string.index(string.startIndex, offsetBy: cursorPosition - 1)) : false)
 
-        let tokens = Lexer().tokenize(string: substring)
+            for token in node.consumedTokens {
+                let format = formattable.formatting(for: token, cursorIsWithin: cursorIsWithin).union(baseStyles)
+//                setAttributes(format.attributes(), range: NSRange(token.range, in: backingStore.string))
+                backingStore.setAttributes(format.attributes(), range: NSRange(token.range, in: backingStore.string))
+            }
 
-        print("-----TOKENS-----")
-        for token in tokens {
-            print(token.variant)
-        }
-        print("---------------")
-
-        let nodes = try! InlineParser().parse(tokens)
-
-        print("-----NODES-----")
-        for node in nodes {
-            print(node)
-            if let convertible = node as? AttributeConvertible {
-                let attributes = convertible.attributes(in: backingStore.string)
-                for attribute in attributes {
-                    setAttributes(attribute.attributes, range: attribute.range)
-                }
+            let childStyles = formattable.formattingForChildren()
+            for child in node.children {
+                applyStyles(for: child, baseStyles: childStyles)
             }
         }
-        print("---------------")
+    }
+
+    func applyStyles() {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let tokens = Lexer().tokenize(string: Substring(string))
+        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        print("Time elapsed for lexing:\t\t\(timeElapsed) s.")
+
+        let startTime2 = CFAbsoluteTimeGetCurrent()
+        guard let nodes = try? Parser(permittedVariants: .inlineVariants).parse(tokens) else {
+            return
+        }
+        let timeElapsed2 = CFAbsoluteTimeGetCurrent() - startTime2
+        print("Time elapsed for parsing:\t\t\(timeElapsed2) s.")
+
+        beginEditing()
+        printTimeElapsedWhenRunningCode(title: "node styling") {
+            for node in nodes {
+                self.applyStyles(for: node)
+            }
+        }
+        edited(.editedAttributes, range: NSRange(location: 0, length: string.count), changeInLength: 0)
+        endEditing()
+    }
+
+    func applyStylesToRange(searchRange: NSRange) {
+//        let range = Range<String.Index>(searchRange, in: backingStore.string)!
+//        let substring = backingStore.string[range]
+//
+//        print("-----TOKENS-----")
+//        for token in tokens {
+//            print(token.variant)
+//        }
+//        print("---------------")
+//
+//        let nodes = try! InlineParser().parse(tokens)
+//
+//        print("-----NODES-----")
+//        for node in nodes {
+//            print(node)
+//            if let convertible = node as? AttributeConvertible {
+//                let attributes = convertible.attributes(in: backingStore.string)
+//                for attribute in attributes {
+//                    setAttributes(attribute.attributes, range: attribute.range)
+//                }
+//            }
+//        }
+//        print("---------------")
 //        let fontDescriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
 //        let boldFontDescriptor = fontDescriptor.withSymbolicTraits(.traitBold)
 //        let boldFont = UIFont(descriptor: boldFontDescriptor!, size: 0)
@@ -95,7 +135,6 @@ class FancyTextStorage: NSTextStorage {
     }
 
     override func processEditing() {
-        print("---PROCESS EDITING")
         performReplacementsForRange(changedRange: editedRange)
         super.processEditing()
     }
@@ -103,6 +142,8 @@ class FancyTextStorage: NSTextStorage {
 
 extension FancyTextStorage: UITextViewDelegate {
     func textViewDidChangeSelection(_ textView: UITextView) {
+        cursorPosition = textView.selectedRange.location
+        applyStyles()
 //        let normalFont = UIFont.preferredFont(forTextStyle: .body)
 //        let normalAttributes = [NSAttributedString.Key.font: normalFont]
 //
@@ -115,3 +156,10 @@ extension FancyTextStorage: UITextViewDelegate {
 
 
 // TODO: Write extension to NSAttributableString which accepts Range<Substring.Index> or Range<String.Index>
+
+func printTimeElapsedWhenRunningCode(title: String, operation: () -> ()) {
+    let startTime = CFAbsoluteTimeGetCurrent()
+    operation()
+    let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+    print("Time elapsed for \(title): \(timeElapsed) s.")
+}

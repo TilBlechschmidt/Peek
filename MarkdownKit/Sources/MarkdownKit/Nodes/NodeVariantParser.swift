@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol NodeVariantParser {
+public protocol NodeVariantParser {
     var childVariantRestriction: VariantRestriction { get }
     var trimNewlinesInChildren: Bool { get }
 

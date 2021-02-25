@@ -40,6 +40,7 @@ struct List: Equatable, NodeVariant {
         func read(using reader: inout TokenReader, _ variantRestriction: VariantRestriction, _ childParser: MarkdownParser) throws -> Node {
             let initialReader = reader
             let leadingWhitespace = reader.readCount(of: .whitespace)
+            let consumedTokens = try reader.tokens(since: initialReader)
             let firstListItemNode = try listItemParser.read(using: &reader, variantRestriction, childParser)
 
             guard let listVariant = (firstListItemNode.variant as? ListItem)?.variant else {
@@ -71,7 +72,7 @@ struct List: Equatable, NodeVariant {
                 }
             }
 
-            return Node(tokens: try reader.tokens(since: initialReader), variant: list, children: listItemNodes)
+            return Node(consumedTokens: Array(consumedTokens), variant: list, children: listItemNodes)
         }
     }
 }
