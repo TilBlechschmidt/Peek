@@ -11,7 +11,17 @@ import SwiftUI
 struct PeekApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    ContentView().edgesIgnoringSafeArea(.init())
+                    Spacer()
+                }
+                Spacer()
+            }
+                .background(Color.background)
+                .edgesIgnoringSafeArea(.all)
         }
     }
 }
