@@ -7,15 +7,17 @@
 
 import Foundation
 
-public struct Block: Identifiable {
-    public let id: UUID
+public struct Block: Identifiable, Hashable {
+    public typealias ID = UUID
+
+    public let id: ID
 
     public let admonition: Bool
     public let blockquote: Bool
 
     public let content: Content
 
-    public enum Content {
+    public enum Content: Hashable {
         case thematicBreak(ThematicBreak.Variant)
         case heading(level: Int, content: String?)
         case code(language: String, content: String)
@@ -27,5 +29,9 @@ public struct Block: Identifiable {
         self.admonition = admonition
         self.blockquote = blockquote
         self.content = content
+    }
+
+    public func replacingContent(with newContent: Content) -> Block {
+        Block(id: id, admonition: admonition, blockquote: blockquote, content: newContent)
     }
 }

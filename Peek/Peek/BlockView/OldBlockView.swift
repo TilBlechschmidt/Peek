@@ -65,15 +65,24 @@ extension View {
     }
 }
 
-struct BlockView: View {
+struct OldBlockView: View {
     let cornerRadius: CGFloat = 5
     let connection: Block.Connection = []
 
-    let block: Block
+    @Binding var block: Block
+
+    let onAppend: () -> Void
+    let onDelete: () -> Void
+
+    var contentBinding: Binding<Block.Content> {
+        Binding(get: { block.content }, set: { newContent in
+            block = block.replacingContent(with: newContent)
+        })
+    }
 
     var body: some View {
         HStack {
-            BlockContentView(content: block.content)
+            BlockContentView(content: contentBinding, onAppend: onAppend, onDelete: onDelete)
                 .padding(block.blockquote ? connection.edgesRequiringPadding.union(.leading) : [])
                 .background(
                     Rectangle()
@@ -92,14 +101,14 @@ struct BlockView: View {
     }
 }
 
-struct BlockView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            BlockView(block: Block(admonition: false, blockquote: false, content: .text("Hello world!")))
-            BlockView(block: Block(admonition: true, blockquote: false, content: .text("Hello world!")))
-            BlockView(block: Block(admonition: false, blockquote: true, content: .text("Hello world!")))
-            BlockView(block: Block(admonition: true, blockquote: true, content: .text("Hello world!")))
-            BlockView(block: Block(admonition: true, blockquote: false, content: .thematicBreak(.dots)))
-        }.padding().previewLayout(PreviewLayout.fixed(width: 568, height: 100))
-    }
-}
+//struct BlockView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        Group {
+//            BlockView(block: .constant(Block(admonition: false, blockquote: false, content: .text("Hello world!"))))
+//            BlockView(block: .constant(Block(admonition: true, blockquote: false, content: .text("Hello world!"))))
+//            BlockView(block: .constant(Block(admonition: false, blockquote: true, content: .text("Hello world!"))))
+//            BlockView(block: .constant(Block(admonition: true, blockquote: true, content: .text("Hello world!"))))
+//            BlockView(block: .constant(Block(admonition: true, blockquote: false, content: .thematicBreak(.dots))))
+//        }.padding().previewLayout(PreviewLayout.fixed(width: 568, height: 100))
+//    }
+//}

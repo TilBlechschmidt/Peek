@@ -88,7 +88,7 @@ class FancyTextStorage: NSTextStorage {
 
     func applyStyles() {
         backingStore.setAttributes([
-            .font: UIFont.systemFont(ofSize: 13),
+            .font: UIFont.preferredFont(forTextStyle: .body),
             .foregroundColor: UIColor.label
         ], range: NSRange(location: 0, length: string.count))
 
@@ -205,12 +205,12 @@ extension FancyTextStorage: InlineParserDelegate {
     func inlineParserDidEncounter(emphasis: Emphasis) {
         let emphasisRange = NSRange(emphasis.opener.lowerBound..<emphasis.closer.upperBound, in: string)
         let cursorInRange = emphasisRange.contains(cursorPosition) || emphasisRange.contains(cursorPosition - 1)
-        let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 13)]
+        let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 14)]
         let delimiterAttributes: [NSAttributedString.Key: Any] = cursorInRange ? [:] : [.font: UIFont.systemFont(ofSize: 0)]
 
-//        addAttributes(attributes, range: NSRange(emphasis.content, in: string))
-//        addAttributes(delimiterAttributes, range: NSRange(emphasis.opener, in: string))
-//        addAttributes(delimiterAttributes, range: NSRange(emphasis.closer, in: string))
+        addAttributes(attributes, range: NSRange(emphasis.content, in: string))
+        addAttributes(delimiterAttributes, range: NSRange(emphasis.opener, in: string))
+        addAttributes(delimiterAttributes, range: NSRange(emphasis.closer, in: string))
     }
 }
 

@@ -8,71 +8,6 @@
 import SwiftUI
 import UIKit
 
-class InlineMarkdownTextView: UITextView {
-    private var shifted: Bool = false
-
-//    override func resignFirstResponder() -> Bool {
-//        print("Blur")
-//        return super.resignFirstResponder()
-//    }
-//
-//    override func becomeFirstResponder() -> Bool {
-//        print("Focus")
-//        return super.becomeFirstResponder()
-//    }
-
-    override var intrinsicContentSize: CGSize {
-        return sizeThatFits(bounds.size)
-    }
-
-    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-        super.pressesBegan(presses, with: event)
-
-        guard let key = presses.first?.key else { return }
-
-        switch key.keyCode {
-        case .keyboardLeftShift, .keyboardRightShift:
-            shifted = true
-        // TODO Handle arrow keys
-        default:
-            return
-        }
-    }
-
-    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-        super.pressesEnded(presses, with: event)
-
-        guard let key = presses.first?.key else { return }
-
-        switch key.keyCode {
-        case .keyboardLeftShift, .keyboardRightShift:
-            shifted = false
-        default:
-            return
-        }
-    }
-
-    override func insertText(_ text: String) {
-        // TODO Allow some method of adding softbreaks on iOS
-        //      For example when the last character in a line is a \ and you return
-        //      then remove the backslash and do a softbreak. Although that is technically
-        //      speaking a hardbreak in Markdown. Figure something out future self :D
-        if !shifted && text.count == 1, let first = text.first, first.isNewline {
-            print("RETURN")
-        } else {
-            super.insertText(text)
-        }
-    }
-
-    override func deleteBackward() {
-        if self.text.isEmpty {
-            print("DELETE")
-        }
-
-        super.deleteBackward()
-    }
-}
-
 struct EditorView: UIViewRepresentable {
     typealias UIViewType = UITextView
 
@@ -84,6 +19,8 @@ struct EditorView: UIViewRepresentable {
     let textStyle: UIFont.TextStyle = .body
 
     let onCommit: ((String) -> Void)?
+    let onDelete: (() -> Void)?
+    let onAppend: (() -> Void)?
 
     func makeUIView(context: Context) -> UITextView {
         let layoutManager = NSLayoutManager()
@@ -92,7 +29,7 @@ struct EditorView: UIViewRepresentable {
         layoutManager.addTextContainer(container)
         textStorage.addLayoutManager(layoutManager)
 
-        let textView = InlineMarkdownTextView(frame: .zero, textContainer: container)
+        let textView = BlockTextView(frame: .zero, textContainer: container)
         textView.textColor = .label
         textView.backgroundColor = .clear
 
@@ -108,6 +45,7 @@ struct EditorView: UIViewRepresentable {
 
         context.coordinator.textView = textView
         textView.delegate = context.coordinator
+        textView.inlineDelegate = context.coordinator
 
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -147,14 +85,54 @@ struct EditorView: UIViewRepresentable {
         uiView.text = text
         uiView.isEditable = editable
         uiView.isSelectable = editable
-        uiView.invalidateIntrinsicContentSize()
+//        uiView.invalidateIntrinsicContentSize()
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    class Coordinator: NSObject, UITextViewDelegate {
+    class Coordinator: NSObject, UITextViewDelegate, BlockTextViewDelegate {
+        func deleteParagraph() {
+            // TODO
+        }
+
+        func appendParagraphBelow() {
+            // TODO
+        }
+
+        func goToPreviousParagraph(at offset: CGFloat) {
+            // TODO
+        }
+
+        func goToNextParagraph(at offset: CGFloat) {
+            // TODO
+        }
+
+        func goToBeginningOfDocument() {
+            // TODO
+        }
+
+        func goToEndOfDocument() {
+            // TODO
+        }
+
+        func selectToBeginningOfDocument() {
+            // TODO
+        }
+
+        func selectToEndOfDocument() {
+            // TODO
+        }
+
+        func selectThisAndPreviousBlock() {
+            // TODO
+        }
+
+        func selectThisAndNextBlock() {
+            // TODO
+        }
+
         let editorView: EditorView
         weak var textView: UITextView?
 
@@ -172,6 +150,14 @@ struct EditorView: UIViewRepresentable {
 
         func textViewDidChangeSelection(_ textView: UITextView) {
             editorView.textStorage.textViewDidChangeSelection(textView)
+        }
+
+        func textViewDidReceiveDeletionRequest() {
+            editorView.onDelete?()
+        }
+
+        func textViewDidReceiveNextParagraphRequest() {
+            editorView.onAppend?()
         }
     }
 }

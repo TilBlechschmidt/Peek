@@ -25,3 +25,9 @@ struct PeekApp: App {
         }
     }
 }
+
+#if targetEnvironment(macCatalyst)
+let isRunningOnMac = true
+#else
+let isRunningOnMac = false
+#endif

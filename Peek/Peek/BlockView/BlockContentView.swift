@@ -35,12 +35,15 @@ extension View {
 }
 
 struct BlockContentView: View {
-    let content: Block.Content
+    @Binding var content: Block.Content
+
+    let onAppend: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         switch content {
         case .text(let text):
-            BlockTextContentView(text: text, onCommit: { _ in })
+            BlockTextContentView(text: text, onCommit: { content = .text($0) }, onAppend: onAppend, onDelete: onDelete)
         case .heading(let level, let text):
             HStack {
                 Text(text ?? "").heading(level: level)
@@ -70,14 +73,14 @@ struct BlockContentView: View {
     }
 }
 
-struct BlockContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            BlockContentView(content: .heading(level: 1, content: "Why this app is cool"))
-            BlockContentView(content: .text("Hello world!"))
-            BlockContentView(content: .thematicBreak(.dots))
-            BlockContentView(content: .thematicBreak(.line))
-            BlockContentView(content: .thematicBreak(.thickLine))
-        }.previewLayout(PreviewLayout.fixed(width: 568, height: 100))
-    }
-}
+//struct BlockContentView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        Group {
+//            BlockContentView(content: .constant(.heading(level: 1, content: "Why this app is cool")))
+//            BlockContentView(content: .constant(.text("Hello world!")))
+//            BlockContentView(content: .constant(.thematicBreak(.dots)))
+//            BlockContentView(content: .constant(.thematicBreak(.line)))
+//            BlockContentView(content: .constant(.thematicBreak(.thickLine)))
+//        }.previewLayout(PreviewLayout.fixed(width: 568, height: 100))
+//    }
+//}
