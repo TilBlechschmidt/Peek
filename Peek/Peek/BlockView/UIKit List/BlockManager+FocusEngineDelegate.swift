@@ -48,6 +48,20 @@ extension BlockManager: FocusEngineDelegate {
         return blockIDs[index - 1]
     }
 
+    func items(between start: UUID, end: UUID) -> ArraySlice<UUID> {
+        guard let startIndex = blockIDs.firstIndex(of: start), let endIndex = blockIDs.firstIndex(of: end) else {
+            return [start, end]
+        }
+
+        if startIndex < endIndex {
+            return blockIDs[startIndex..<endIndex]
+        } else if startIndex > endIndex {
+            return blockIDs[endIndex..<startIndex]
+        } else {
+            return [start, end]
+        }
+    }
+
     func allItems() -> [UUID] {
         blockIDs
     }

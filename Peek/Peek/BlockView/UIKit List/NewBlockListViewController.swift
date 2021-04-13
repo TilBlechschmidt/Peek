@@ -103,13 +103,14 @@ extension NewBlockListViewController {
             }
             .store(in: &cancellables)
 
-        editorState.focusEngine.$cursor
-            .sink { [weak self] cursor in
-                if let cursor = cursor, let self = self, let indexPath = self.dataSource.indexPath(for: cursor) {
-                    self.tableView.scrollToRow(at: indexPath, at: .none, animated: true)
-                }
-            }
-            .store(in: &cancellables)
+        // TODO FocusEngine
+//        editorState.focusEngine.$cursor
+//            .sink { [weak self] cursor in
+//                if let cursor = cursor, let self = self, let indexPath = self.dataSource.indexPath(for: cursor) {
+//                    self.tableView.scrollToRow(at: indexPath, at: .none, animated: true)
+//                }
+//            }
+//            .store(in: &cancellables)
 
         editorState.blockManager.$blockIDs
             .dropFirst()
@@ -126,7 +127,8 @@ extension NewBlockListViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if !editorState.isEditingContent, let identifier = dataSource.itemIdentifier(for: indexPath) {
             // TODO Add SHIFT click (aka select from anchor to clicked item)
-            editorState.focusEngine.toggle(identifier, deselectOther: isRunningOnMac && !activeModifierFlags.contains(.command))
+            // TODO FocusEngine
+//            editorState.focusEngine.toggle(identifier, deselectOther: isRunningOnMac && !activeModifierFlags.contains(.command))
         }
     }
 }

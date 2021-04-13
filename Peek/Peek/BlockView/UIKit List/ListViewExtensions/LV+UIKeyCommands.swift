@@ -60,35 +60,35 @@ extension NewBlockListViewController {
     }
 
     @objc func createNewBlock() {
-        if editorState.isEditingContent {
-            guard let focusedCell = editorState.focusEngine.cursor, let indexPath = dataSource.indexPath(for: focusedCell), let cell = tableView.cellForRow(at: indexPath) as? BlockCell else {
-                print("WARNING: Attempted to add block below cell that does not exit")
-                return
-            }
-
-            // TODO If we are empty and you press RETURN, remove the admonition/blockquote
-            let newBlock = UIBlock(admonition: cell.block.admonition, blockquote: cell.block.blockquote, content: cell.takeContentForNextBlock())
-            editorState.blockManager.insert(newBlock, after: cell.block.id)
-            editorState.focusEngine.select(newBlock.id, deselectOther: true)
-        } else {
-            // TODO Deal with selection and shiet
-        }
+//        if editorState.isEditingContent {
+//            guard let focusedCell = editorState.focusEngine.cursor, let indexPath = dataSource.indexPath(for: focusedCell), let cell = tableView.cellForRow(at: indexPath) as? BlockCell else {
+//                print("WARNING: Attempted to add block below cell that does not exit")
+//                return
+//            }
+//
+//            // TODO If we are empty and you press RETURN, remove the admonition/blockquote
+//            let newBlock = UIBlock(admonition: cell.block.admonition, blockquote: cell.block.blockquote, content: cell.takeContentForNextBlock())
+//            editorState.blockManager.insert(newBlock, after: cell.block.id)
+//            editorState.focusEngine.select(newBlock.id, deselectOther: true)
+//        } else {
+//            // TODO Deal with selection and shiet
+//        }
     }
 
     @objc func focusPreviousBlock() {
-        editorState.focusEngine.moveCursor(.backward)
+//        editorState.focusEngine.moveCursor(.backward)
     }
 
     @objc func focusNextBlock() {
-        editorState.focusEngine.moveCursor(.forward)
+//        editorState.focusEngine.moveCursor(.forward)
     }
 
     @objc func extendSelectionUpwards() {
-        editorState.focusEngine.moveCursor(.backward, retainSelection: true)
+//        editorState.focusEngine.moveCursor(.backward, retainSelection: true)
     }
 
     @objc func extendSelectionDownwards() {
-        editorState.focusEngine.moveCursor(.forward, retainSelection: true)
+//        editorState.focusEngine.moveCursor(.forward, retainSelection: true)
     }
 
     @objc func deselectAll() {

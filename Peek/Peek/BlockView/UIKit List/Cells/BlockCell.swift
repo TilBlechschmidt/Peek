@@ -71,7 +71,8 @@ class BlockCell: UITableViewCell {
 
         editorState.$isEditingContent
             .sink { [weak self] isEditingContent in
-                self?.updateResponderState(cursor: self?.editorState.focusEngine.cursor)
+                // TODO FocusEngine
+//                self?.updateResponderState(cursor: self?.editorState.focusEngine.cursor)
 
                 #if targetEnvironment(macCatalyst)
                 self?.blockView.displaySelectionBox = false
@@ -82,17 +83,18 @@ class BlockCell: UITableViewCell {
             }
             .store(in: &editorStateCancellables)
 
-        editorState.focusEngine.$selection
-            .sink { [weak self] selected in
-                self?.updateSelectionState(selection: selected)
-            }
-            .store(in: &editorStateCancellables)
-
-        editorState.focusEngine.$cursor
-            .sink { [weak self] cursor in
-                self?.updateResponderState(cursor: cursor)
-            }
-            .store(in: &editorStateCancellables)
+        // TODO FocusEngine
+//        editorState.focusEngine.$selection
+//            .sink { [weak self] selected in
+//                self?.updateSelectionState(selection: selected)
+//            }
+//            .store(in: &editorStateCancellables)
+//
+//        editorState.focusEngine.$cursor
+//            .sink { [weak self] cursor in
+//                self?.updateResponderState(cursor: cursor)
+//            }
+//            .store(in: &editorStateCancellables)
     }
 
     override func prepareForReuse() {
