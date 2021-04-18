@@ -38,4 +38,8 @@ extension UIColor {
     static var selection: UIColor {
         UIColor(named: "Selection") ?? .unknownColor
     }
+
+    static var interaction: UIColor {
+        UIColor(named: "Interaction") ?? .unknownColor
+    }
 }

@@ -42,8 +42,9 @@ struct BlockContentView: View {
 
     var body: some View {
         switch content {
-        case .text(let text):
-            BlockTextContentView(text: text, onCommit: { content = .text($0) }, onAppend: onAppend, onDelete: onDelete)
+        case .text:
+            Text("Hello")
+//            BlockTextContentView(text: text, onCommit: { content = .text($0) }, onAppend: onAppend, onDelete: onDelete)
         case .heading(let level, let text):
             HStack {
                 Text(text ?? "").heading(level: level)
