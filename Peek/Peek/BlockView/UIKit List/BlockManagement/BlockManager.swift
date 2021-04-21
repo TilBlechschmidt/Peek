@@ -9,48 +9,20 @@ import Foundation
 import Combine
 import UIKit
 
-class ContentBlock: Identifiable {
-    let id: UUID
-
-    init(_ id: UUID = UUID()) {
-        self.id = id
-    }
-}
-
 class BlockManager {
-    let blockIDs: CurrentValueSubject<[UUID], Never> = CurrentValueSubject([])
+    let blocks: CurrentValueSubject<[ContentBlock], Never> = CurrentValueSubject([])
 
-    init(_ blocks: [UUID] = []) {
+    init(_ blocks: [ContentBlock] = []) {
         blocks.forEach {
             append($0)
         }
     }
 
-    func insert(_ block: UUID, before id: UUID) {
-        guard !blockIDs.value.contains(block), let index = blockIDs.value.firstIndex(of: id) else { return }
-        blockIDs.value.insert(block, at: index)
+    internal func index(of id: UUID) -> Int? {
+        blocks.value.firstIndex(where: { $0.id == id })
     }
 
-    func insert(_ block: UUID, after id: UUID) {
-        guard !blockIDs.value.contains(block), let index = blockIDs.value.firstIndex(of: id) else { return }
-        blockIDs.value.insert(block, at: index + 1)
-    }
-
-    func append(_ block: UUID) {
-        guard !blockIDs.value.contains(block) else { return }
-        blockIDs.value.append(block)
-    }
-
-    func remove(_ id: UUID) {
-        guard let index = blockIDs.value.firstIndex(of: id) else { return }
-        blockIDs.value.remove(at: index)
-    }
-
-    func block(before blockID: UUID) -> UUID? {
-        item(before: blockID)
-    }
-
-    func block(after blockID: UUID) -> UUID? {
-        item(after: blockID)
+    internal func manages(_ id: UUID) -> Bool {
+        index(of: id) != nil
     }
 }

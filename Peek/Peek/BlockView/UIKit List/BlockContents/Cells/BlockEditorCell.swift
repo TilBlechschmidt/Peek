@@ -72,6 +72,13 @@ class BlockEditorCell: UITableViewCell {
 
     var capturedKeyCommands: BlockEditorKeyCommands { [] }
 
+    /// Whether or not this cell contains content after an internal cursor,
+    /// which should be integrated into the previous cell on deletion or moved
+    /// to the next cell on insertion of a new cell.
+    var containsTrailingContent: Bool {
+        false
+    }
+
     func configureContent(in view: UIView) {}
 
     func focusModeDidChange(active: Bool, mode: FocusEngine.Mode) {}
@@ -125,6 +132,7 @@ class BlockEditorCell: UITableViewCell {
         }
 
         backgroundColor = .clear
+        selectionStyle = .none
         contentView.layer.cornerRadius = Constants.cornerRadius
         contentView.clipsToBounds = true
 

@@ -7,7 +7,17 @@
 
 import UIKit
 
+protocol BlockTextViewKeyPressDelegate: class {
+    func shouldTextViewCaptureNewline() -> Bool
+    func shouldTextViewCaptureBackspace() -> Bool
+
+    func blockTextViewDidCaptureNewline()
+    func blockTextViewDidCaptureBackspace()
+}
+
 class BlockTextView: UITextView {
+    weak var keyPressDelegate: BlockTextViewKeyPressDelegate?
+
     init(textStorage: NSTextStorage) {
         let layoutManager = NSLayoutManager()
         let container = NSTextContainer(size: .zero)
@@ -38,6 +48,25 @@ class BlockTextView: UITextView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+}
+
+extension BlockTextView {
+    override func insertText(_ text: String) {
+        // Ask the delegate whether it wants to capture the newline press or not
+        if text.count == 1, text.first?.isNewline ?? false, let delegate = keyPressDelegate, delegate.shouldTextViewCaptureNewline() {
+            delegate.blockTextViewDidCaptureNewline()
+        } else {
+            super.insertText(text)
+        }
+    }
+
+    override func deleteBackward() {
+        if let delegate = keyPressDelegate, delegate.shouldTextViewCaptureBackspace() {
+            delegate.blockTextViewDidCaptureBackspace()
+        } else {
+            super.deleteBackward()
+        }
     }
 }
 

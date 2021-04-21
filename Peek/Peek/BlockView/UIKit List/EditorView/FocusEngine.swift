@@ -37,12 +37,27 @@ class FocusEngine {
 
     @Published private(set) var mode: Mode = .none {
         didSet {
-            if case .focus(_) = mode {
-                // Nothing yet
-            } else {
-                // Reset the caret when we exit focus mode
+            // Reset the caret when we exit focus mode
+            if case .focus(_) = mode {} else {
                 caret = .infinity
                 lastMoveDirection = nil
+            }
+
+            // Synchronize selection with delegate
+            if let selectionDelegate = self.selectionDelegate {
+                var oldSelection: [UUID] = []
+                var newSelection: [UUID] = []
+
+                if case .select(let cursor, let anchor, let incidentals) = oldValue {
+                    oldSelection = (cursor == anchor ? [cursor] : (delegate?.items(between: cursor, end: anchor) ?? [cursor, anchor])) + Array(incidentals)
+                }
+
+                if case .select(let cursor, let anchor, let incidentals) = mode {
+                    newSelection = (cursor == anchor ? [cursor] : (delegate?.items(between: cursor, end: anchor) ?? [cursor, anchor])) + Array(incidentals)
+                }
+
+                let delta = newSelection.difference(from: oldSelection)
+                selectionDelegate.focusEngine(didChangeSelectionBy: delta)
             }
         }
     }
@@ -56,7 +71,24 @@ class FocusEngine {
     /// Whether the engine should go from .none to .focus when only a single item is selected
     var defaultToFocusMode: Bool = true
 
+    weak var selectionDelegate: FocusEngineSelectionDelegate?
     weak var delegate: FocusEngineDelegate?
+
+    /// Snapshot of the currently selected items
+    var selected: [UUID] {
+        switch mode {
+        case .none:
+            return []
+        case .focus(let item):
+            return [item]
+        case .select(let cursor, let anchor, let incidentals):
+            return (cursor == anchor ? [cursor] : (delegate?.items(between: cursor, end: anchor) ?? [cursor, anchor])) + Array(incidentals)
+        }
+    }
+
+    var cursorPosition: UUID? {
+        delegate?.lastItem(of: Set(selected))
+    }
 
     func isSelected(_ item: UUID) -> Bool {
         selectionType(for: item, mode) != nil
@@ -357,6 +389,10 @@ class FocusEngine {
             return false
         }
     }
+}
+
+protocol FocusEngineSelectionDelegate: class {
+    func focusEngine(didChangeSelectionBy delta: CollectionDifference<UUID>)
 }
 
 protocol FocusEngineDelegate: class {

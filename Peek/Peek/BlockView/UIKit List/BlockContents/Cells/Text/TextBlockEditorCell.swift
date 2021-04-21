@@ -14,6 +14,23 @@ class TextBlockEditorCell: BlockEditorCell {
     private let textView = BlockTextView(textStorage: NSTextStorage(string: "Hello world"))
 
     private var keyboardHideCancellable: AnyCancellable!
+    private var contentCancellable: AnyCancellable!
+
+    weak var content: TextContentBlock! {
+        didSet {
+            contentCancellable = content.$text.sink { [weak self] in
+                guard let self = self else { return }
+
+                let selection = self.textView.selectedRange
+                self.textView.text = $0
+                self.textView.selectedRange = selection
+            }
+        }
+    }
+
+    var selection: NSRange {
+        textView.selectedRange
+    }
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -41,6 +58,10 @@ class TextBlockEditorCell: BlockEditorCell {
         textView
     }
 
+    override var containsTrailingContent: Bool {
+        !textView.caretIsAtEnd
+    }
+
     override var capturedKeyCommands: BlockEditorKeyCommands {
         var capturedCommands: BlockEditorKeyCommands = []
 
@@ -64,11 +85,16 @@ class TextBlockEditorCell: BlockEditorCell {
             capturedCommands.insert(.moveCursorRight)
         }
 
+        if !(textView.text.isEmpty || (textView.caretIsAtBeginning && textView.selectedRange.length == 0)) {
+            capturedCommands.insert(.delete)
+        }
+
         return capturedCommands
     }
 
     override func configureContent(in contentView: UIView) {
         textView.delegate = self
+        textView.keyPressDelegate = self
         contentView.addSubview(textView)
         textView.snp.makeConstraints { make in
             make.edges.equalToSuperview().inset(8)
@@ -116,10 +142,6 @@ class TextBlockEditorCell: BlockEditorCell {
         textView.isSelectable = editing
         textView.isEditable = editing
     }
-
-    func set(text: String) {
-        textView.text = text
-    }
 }
 
 extension TextBlockEditorCell: UITextViewDelegate {
@@ -130,11 +152,34 @@ extension TextBlockEditorCell: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
         // TODO Check if the height actually changed
         cellChangedLayoutHeight()
+
+        content?.text = textView.text
     }
 
     func textViewDidChangeSelection(_ textView: UITextView) {
         // TODO When moving over from another view, ignore the first selection change
         //      This prevents "drift" when moving the cursor up and down repeatedly
         focusEngine.caret = self.textView.selectedGlyphLocation
+    }
+}
+
+extension TextBlockEditorCell: BlockTextViewKeyPressDelegate {
+    func shouldTextViewCaptureNewline() -> Bool {
+        true
+    }
+
+    func shouldTextViewCaptureBackspace() -> Bool {
+        !capturedKeyCommands.contains(.delete)
+    }
+
+    // TODO The calls below do not honor modifiers (in fact they completely ignore them) which allows e.g. SHIFT + RETURN
+    //      Figure out if this is actually desirable ;)
+
+    func blockTextViewDidCaptureNewline() {
+        (viewController.tableView as? BlockTableView)?.insertBelow()
+    }
+
+    func blockTextViewDidCaptureBackspace() {
+        (viewController.tableView as? BlockTableView)?.deleteBlock()
     }
 }

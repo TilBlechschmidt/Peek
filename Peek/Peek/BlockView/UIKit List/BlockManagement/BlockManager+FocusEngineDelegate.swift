@@ -9,7 +9,7 @@ import Foundation
 
 extension BlockManager: FocusEngineDelegate {
     func direction(from origin: UUID, to target: UUID) -> FocusEngine.MoveDirection {
-        guard let originIndex = blockIDs.value.firstIndex(of: origin), let targetIndex = blockIDs.value.firstIndex(of: target) else {
+        guard let originIndex = index(of: origin), let targetIndex = index(of: target) else {
             return .forward
         }
 
@@ -17,52 +17,54 @@ extension BlockManager: FocusEngineDelegate {
     }
 
     func firstItem() -> UUID? {
-        blockIDs.value.first
+        blocks.value.first?.id
     }
 
     func lastItem() -> UUID? {
-        blockIDs.value.last
+        blocks.value.last?.id
     }
 
     func firstItem(of set: Set<UUID>) -> UUID? {
-        blockIDs.value.first { set.contains($0) }
+        let block = blocks.value.first { set.contains($0.id) }
+        return block?.id
     }
 
     func lastItem(of set: Set<UUID>) -> UUID? {
-        blockIDs.value.last { set.contains($0) }
+        let block = blocks.value.last { set.contains($0.id) }
+        return block?.id
     }
 
     func item(after other: UUID) -> UUID? {
-        guard let index = blockIDs.value.firstIndex(of: other), index < blockIDs.value.count - 1 else {
+        guard let index = index(of: other), index < blocks.value.count - 1 else {
             return nil
         }
 
-        return blockIDs.value[index + 1]
+        return blocks.value[index + 1].id
     }
 
     func item(before other: UUID) -> UUID? {
-        guard let index = blockIDs.value.firstIndex(of: other), index > 0 else {
+        guard let index = index(of: other), index > 0 else {
             return nil
         }
 
-        return blockIDs.value[index - 1]
+        return blocks.value[index - 1].id
     }
 
     func items(between start: UUID, end: UUID) -> ArraySlice<UUID> {
-        guard let startIndex = blockIDs.value.firstIndex(of: start), let endIndex = blockIDs.value.firstIndex(of: end) else {
+        guard let startIndex = index(of: start), let endIndex = index(of: end) else {
             return [start, end]
         }
 
         if startIndex < endIndex {
-            return blockIDs.value[startIndex...endIndex]
+            return ArraySlice(blocks.value[startIndex...endIndex].map { $0.id })
         } else if startIndex > endIndex {
-            return blockIDs.value[endIndex...startIndex]
+            return ArraySlice(blocks.value[endIndex...startIndex].map { $0.id })
         } else {
             return [start, end]
         }
     }
 
     func allItems() -> [UUID] {
-        blockIDs.value
+        blocks.value.map { $0.id }
     }
 }

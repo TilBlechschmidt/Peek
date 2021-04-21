@@ -13,12 +13,22 @@ import SwiftUI
 
 protocol BlockEditorDelegate: FocusEngineDelegate {
     // Content list
-    var blockIDs: CurrentValueSubject<[UUID], Never> { get }
+    var blocks: CurrentValueSubject<[ContentBlock], Never> { get }
+    func content(for id: UUID) -> ContentBlock?
 
     // Cell management
     func registerCells(with tableView: UITableView)
     func cellIdentifier(for block: UUID) -> String
     func configure(cell: BlockEditorCell, for block: UUID)
+
+    // Content modification
+    func newBlock(forInsertionAfter id: UUID) -> ContentBlock
+    func insert(_ block: ContentBlock, at index: Int)
+    func insert(_ block: ContentBlock, before id: UUID)
+    func insert(_ block: ContentBlock, after id: UUID)
+    func append(_ block: ContentBlock)
+    func remove(_ id: UUID)
+    func removeAll(in collection: [UUID])
 }
 
 class BlockEditorViewController: UITableViewController {
@@ -46,6 +56,8 @@ class BlockEditorViewController: UITableViewController {
         #endif
 
         super.init(style: .plain)
+
+        focusEngine.selectionDelegate = self
     }
     
     required init?(coder: NSCoder) {
@@ -108,16 +120,25 @@ extension BlockEditorViewController {
 
     func configureTableView() {
         view.backgroundColor = .clear
-        tableView.allowsSelection = false
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.keyboardDismissMode = .interactive
+
+        tableView.selectionFollowsFocus = false
+        tableView.allowsMultipleSelection = true
+        tableView.allowsSelection = true
+        tableView.dragInteractionEnabled = true
+        tableView.dragDelegate = self
+        tableView.dropDelegate = self
+
+        // Prevent the UIMultiSelectInteraction (private UIKit class) from being added since it captures some touches ...
+        tableView.interactions = tableView.interactions.filter { $0.isKind(of: UIDragInteraction.self) || $0.isKind(of: UIDropInteraction.self) }
     }
 
     func configureObservers() {
         cancellables.removeAll()
 
-        delegate?.blockIDs
+        delegate?.blocks
             .dropFirst()
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
@@ -177,12 +198,11 @@ struct UIBlockListView: UIViewControllerRepresentable {
 
         init() {
             blockManager = BlockManager([
-                UUID(),
-                UUID(),
-                UUID(),
-                UUID(),
-                UUID(),
-                UUID()
+                TextContentBlock(text: "Hello world 1"),
+                TextContentBlock(text: "Hello world 2"),
+                TextContentBlock(text: "Hello world 3"),
+                TextContentBlock(text: "Hello world 4"),
+                TextContentBlock(text: "Hello world 5"),
             ])
         }
     }
