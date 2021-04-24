@@ -27,10 +27,11 @@ struct EditorConstants {
 }
 
 class BlockEditorCell: UITableViewCell {
-    private var cancellables: [AnyCancellable] = []
+    private var focusEngineCancellable: AnyCancellable?
+    private var dragStateCancellables: [AnyCancellable] = []
 
     private let listIconView = UIImageView(image: UIImage(systemName: "list.bullet"))
-    private let innerContentView = UIView()
+    internal let innerContentView = UIView()
     private var centerXConstraint: Constraint!
 
     var blockID: UUID!
@@ -38,23 +39,41 @@ class BlockEditorCell: UITableViewCell {
     weak var viewController: BlockEditorViewController!
     weak var focusEngine: FocusEngine! {
         didSet {
-            focusEngine.$mode
-                .sink { [weak self] mode in
-                    guard let self = self else { return }
+            focusEngineCancellable = focusEngine.$mode.sink { [weak self] mode in
+                guard let self = self else { return }
 
-                    switch mode {
-                    case .focus(let focused):
-                        self.focusModeDidChange(active: true, mode: mode)
-                        self.focusStateDidChange(focused: focused == self.blockID)
-                    case .select, .none:
-                        self.focusModeDidChange(active: false, mode: mode)
-                        self.focusStateDidChange(focused: false)
-                    }
-
-                    let type = self.focusEngine.selectionType(for: self.blockID, mode)
-                    self.selectionTypeDidChange(to: type)
+                switch mode {
+                case .focus(let focused):
+                    self.focusModeDidChange(active: true, mode: mode)
+                    self.focusStateDidChange(focused: focused == self.blockID)
+                case .select, .none:
+                    self.focusModeDidChange(active: false, mode: mode)
+                    self.focusStateDidChange(focused: false)
                 }
-                .store(in: &cancellables)
+
+                let type = self.focusEngine.selectionType(for: self.blockID, mode)
+                self.selectionTypeDidChange(to: type)
+            }
+        }
+    }
+
+    weak var dragState: BlockEditorDragState! {
+        didSet {
+            dragStateCancellables.removeAll()
+
+            dragState.$active
+                .sink { [weak self] active in
+                    self?.isUserInteractionEnabled = !active
+                }
+                .store(in: &dragStateCancellables)
+
+            dragState.$participatingBlocks
+                .sink { [weak self] blocks in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        self?.alpha = self?.blockID.flatMap { blocks.contains($0) } ?? false ? 0.25 : 1
+                    }
+                }
+                .store(in: &dragStateCancellables)
         }
     }
 
@@ -103,12 +122,25 @@ class BlockEditorCell: UITableViewCell {
     // --
 
     override func prepareForReuse() {
-        cancellables.removeAll()
+        focusEngineCancellable = nil
+        dragStateCancellables.removeAll()
+    }
+
+    required init() {
+        super.init(style: .default, reuseIdentifier: nil)
+        configure()
     }
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        configure()
+    }
 
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func configure() {
         listIconView.tintColor = .label
         contentView.addSubview(listIconView)
         listIconView.snp.makeConstraints { make in
@@ -133,16 +165,14 @@ class BlockEditorCell: UITableViewCell {
 
         backgroundColor = .clear
         selectionStyle = .none
+        layer.cornerRadius = Constants.cornerRadius
+        clipsToBounds = true
         contentView.layer.cornerRadius = Constants.cornerRadius
         contentView.clipsToBounds = true
 
         configureContent(in: innerContentView)
         innerContentView.layer.cornerRadius = Constants.cornerRadius
         innerContentView.backgroundColor = .background
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     @objc func handlePanGesture(_ pan: UIPanGestureRecognizer) {

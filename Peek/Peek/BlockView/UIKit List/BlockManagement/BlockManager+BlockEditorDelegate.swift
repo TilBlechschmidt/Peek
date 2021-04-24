@@ -15,9 +15,10 @@ extension BlockManager: BlockEditorDelegate {
     }
 
     // MARK: - Cell management
-    func registerCells(with tableView: UITableView) {
-//        tableView.register(ContentCellA.self, forCellReuseIdentifier: ContentCellA.identifier)
-        tableView.register(TextBlockEditorCell.self, forCellReuseIdentifier: TextBlockEditorCell.identifier)
+    func cellTypes() -> [String : BlockEditorCell.Type] {
+        [
+            TextBlockEditorCell.identifier: TextBlockEditorCell.self
+        ]
     }
 
     func cellIdentifier(for block: UUID) -> String {
@@ -50,14 +51,36 @@ extension BlockManager: BlockEditorDelegate {
         blocks.value.insert(block, at: index)
     }
 
+    func insert(blocks: [ContentBlock], before id: UUID) {
+        guard let index = index(of: id), blocks.reduce(true, { $0 && !manages($1.id) }) else { return }
+        self.blocks.value.insert(contentsOf: blocks, at: index)
+    }
+
     func insert(_ block: ContentBlock, after id: UUID) {
         guard !manages(block.id), let index = index(of: id) else { return }
         blocks.value.insert(block, at: index + 1)
     }
 
+    func insert(blocks: [ContentBlock], after id: UUID) {
+        guard let index = index(of: id), blocks.reduce(true, { $0 && !manages($1.id) }) else { return }
+        self.blocks.value.insert(contentsOf: blocks, at: index + 1)
+    }
+
     func append(_ block: ContentBlock) {
         guard !manages(block.id) else { return }
         blocks.value.append(block)
+    }
+
+    func move(blockWithID id: UUID, after other: UUID, animate: Bool = true) {
+        guard id != other, let index = index(of: id) else { return }
+
+        var newBlocks = blocks.value
+        newBlocks.remove(at: index)
+
+        guard let insertionIndex = newBlocks.firstIndex(where: { $0.id == other }) else { return }
+        newBlocks.insert(blocks.value[index], at: insertionIndex + 1)
+
+        blocks.value = newBlocks
     }
 
     func remove(_ id: UUID) {

@@ -261,25 +261,6 @@ extension BlockTableView {
     }
 }
 
-extension BlockTableView {
-//    override var canBecomeFirstResponder: Bool {
-//        false
-//    }
-//
-//    override func touchesShouldBegin(_ touches: Set<UITouch>, with event: UIEvent?, in view: UIView) -> Bool {
-//        print("TOUCHES SHOULD BEGIN", super.touchesShouldBegin(touches, with: event, in: view))
-//        return true
-//    }
-//
-//    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-//        print("TOUCHES BEGAN")
-//    }
-//
-//    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-//        print("TOUCHES ENDED")
-//    }
-}
-
 extension BlockEditorViewController {
     override var canBecomeFirstResponder: Bool {
         false

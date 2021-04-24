@@ -12,12 +12,14 @@ import SnapKit
 import SwiftUI
 
 protocol BlockEditorDelegate: FocusEngineDelegate {
+    var instance: UUID { get }
+    
     // Content list
     var blocks: CurrentValueSubject<[ContentBlock], Never> { get }
     func content(for id: UUID) -> ContentBlock?
 
     // Cell management
-    func registerCells(with tableView: UITableView)
+    func cellTypes() -> [String : BlockEditorCell.Type]
     func cellIdentifier(for block: UUID) -> String
     func configure(cell: BlockEditorCell, for block: UUID)
 
@@ -25,10 +27,22 @@ protocol BlockEditorDelegate: FocusEngineDelegate {
     func newBlock(forInsertionAfter id: UUID) -> ContentBlock
     func insert(_ block: ContentBlock, at index: Int)
     func insert(_ block: ContentBlock, before id: UUID)
+    func insert(blocks: [ContentBlock], before id: UUID)
     func insert(_ block: ContentBlock, after id: UUID)
+    func insert(blocks: [ContentBlock], after id: UUID)
     func append(_ block: ContentBlock)
+    func move(blockWithID id: UUID, after other: UUID, animate: Bool)
     func remove(_ id: UUID)
     func removeAll(in collection: [UUID])
+}
+
+class BlockEditorDragState {
+    /// DO NOT SET THIS VARIABLE DIRECTLY
+    @Published private(set) var active: Bool = false
+    @Published var dragActive: Bool = false { didSet { active = dragActive || dropActive } }
+    @Published var dropActive: Bool = false { didSet { active = dragActive || dropActive } }
+    @Published var participatingBlocks = Set<UUID>()
+    @Published var target: (id: UUID, above: Bool)? = nil
 }
 
 class BlockEditorViewController: UITableViewController {
@@ -36,12 +50,16 @@ class BlockEditorViewController: UITableViewController {
     var currentSnapshot: NSDiffableDataSourceSnapshot<Section, UUID>! = nil
 
     private var cancellables: [AnyCancellable] = []
+    private var insertionView = UIView()
+    private var insertionConstraint: Constraint?
 
-    private let focusEngine = FocusEngine()
-
+    internal let focusEngine = FocusEngine()
+    internal let dragState = BlockEditorDragState()
     weak var delegate: BlockEditorDelegate? {
         didSet {
-            delegate?.registerCells(with: tableView)
+            delegate?.cellTypes().forEach { (identifier, type) in
+                tableView.register(type, forCellReuseIdentifier: identifier)
+            }
             configureObservers()
 
             focusEngine.delegate = delegate
@@ -65,7 +83,10 @@ class BlockEditorViewController: UITableViewController {
     }
 
     override func loadView() {
-        let tableView = BlockTableView(frame: .zero)
+        // We are setting an arbitrary height to prevent constraint issues during view loading
+        // as the insertionViews width is tied to the tableView's width - 16 which obviously fails
+        // when the tableView has a width of 0.
+        let tableView = BlockTableView(frame: .init(origin: .zero, size: CGSize(width: 100, height: 0)))
         tableView.delegate = self
         tableView.viewController = self
         tableView.focusEngine = focusEngine
@@ -76,8 +97,11 @@ class BlockEditorViewController: UITableViewController {
         super.viewDidLoad()
 
         configureTableView()
+        configureInsertionView()
         configureDataSource()
         configureObservers()
+        configureDragInteraction()
+        configureDropInteraction()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -101,18 +125,29 @@ extension BlockEditorViewController {
         dataSource.apply(currentSnapshot, animatingDifferences: animate)
     }
 
+    func configureCell(for id: UUID, useReusableCell: Bool = true) -> UITableViewCell? {
+
+        guard let identifier = delegate?.cellIdentifier(for: id),
+              let delegate = delegate,
+              let cell = useReusableCell ? (
+                  tableView.dequeueReusableCell(withIdentifier: identifier) as? BlockEditorCell
+              ) : (
+                  delegate.cellTypes()[identifier]!.init()
+              )
+        else { return nil }
+
+        cell.viewController = self
+        cell.blockID = id
+        cell.focusEngine = focusEngine
+        cell.dragState = dragState
+        delegate.configure(cell: cell, for: id)
+
+        return cell
+    }
+
     func configureDataSource() {
         dataSource = UITableViewDiffableDataSource<Section, UUID>(tableView: tableView) { [weak self] (tableView: UITableView, indexPath: IndexPath, blockID: UUID) -> UITableViewCell? in
-            guard let identifier = self?.delegate?.cellIdentifier(for: blockID), let cell = tableView.dequeueReusableCell(withIdentifier: identifier) as? BlockEditorCell else {
-                return nil
-            }
-
-            cell.viewController = self
-            cell.blockID = blockID
-            cell.focusEngine = self?.focusEngine
-            self?.delegate?.configure(cell: cell, for: blockID)
-
-            return cell
+            self?.configureCell(for: blockID)
         }
 
         dataSource.defaultRowAnimation = .fade
@@ -120,19 +155,52 @@ extension BlockEditorViewController {
 
     func configureTableView() {
         view.backgroundColor = .clear
+        tableView.clipsToBounds = false
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.keyboardDismissMode = .interactive
+    }
 
-        tableView.selectionFollowsFocus = false
-        tableView.allowsMultipleSelection = true
-        tableView.allowsSelection = true
-        tableView.dragInteractionEnabled = true
-        tableView.dragDelegate = self
-        tableView.dropDelegate = self
+    func configureInsertionView() {
+        let height: CGFloat = 2.5
 
-        // Prevent the UIMultiSelectInteraction (private UIKit class) from being added since it captures some touches ...
-        tableView.interactions = tableView.interactions.filter { $0.isKind(of: UIDragInteraction.self) || $0.isKind(of: UIDropInteraction.self) }
+        insertionView.alpha = 0
+        insertionView.backgroundColor = .accentColor
+        insertionView.layer.cornerRadius = height / 2
+
+        tableView.addSubview(insertionView)
+        insertionView.snp.makeConstraints { make in
+            make.height.equalTo(height)
+            make.width.equalToSuperview().inset(Constants.padding)
+            make.centerX.equalToSuperview()
+        }
+    }
+
+    func attachInsertionView(to cell: UIView, above: Bool) {
+        tableView.bringSubviewToFront(insertionView)
+        insertionConstraint?.deactivate()
+        insertionView.snp.makeConstraints { make in
+            if above {
+                insertionConstraint = make.bottom.equalTo(cell.snp.top).offset(insertionView.frame.height / 2).constraint
+            } else {
+                insertionConstraint = make.top.equalTo(cell.snp.bottom).offset(-insertionView.frame.height / 2).constraint
+            }
+        }
+    }
+
+    func detachInsertionView() {
+        // Pin the insertionView to its current position relative to the tableView
+        let frame = insertionView.frame
+        insertionConstraint?.deactivate()
+        insertionView.snp.makeConstraints { make in
+            insertionConstraint = make.top.equalToSuperview().inset(frame.minY).constraint
+        }
+        tableView.layoutIfNeeded()
+
+        // Fade the insertionView out and remove the pinning once done
+        UIView.animate(withDuration: Constants.animationDuration) {
+            self.insertionView.alpha = 0
+        }
     }
 
     func configureObservers() {
@@ -147,13 +215,41 @@ extension BlockEditorViewController {
             }
             .store(in: &cancellables)
 
-        focusEngine.$mode
-            .sink { [weak self] mode in
-                // TODO Add a proper UI element for this and a "done" button
-                if case .select = mode {
-                    self?.tableView.backgroundColor = .brown
-                } else {
-                    self?.tableView.backgroundColor = .clear
+//        focusEngine.$mode
+//            .sink { [weak self] mode in
+//                // TODO Add a proper UI element for this and a "done" button
+//                if case .select = mode {
+//                    self?.tableView.backgroundColor = .brown
+//                } else {
+//                    self?.tableView.backgroundColor = .clear
+//                }
+//            }
+//            .store(in: &cancellables)
+
+        dragState.$dropActive
+            .filter { !$0 }
+            .sink { [weak self] _ in
+                self?.detachInsertionView()
+            }
+            .store(in: &cancellables)
+
+        dragState.$target
+            .sink { [weak self] target in
+                guard let s = self, let target = target else {
+                    self?.detachInsertionView()
+                    return
+                }
+
+                if let cell = s.cell(for: target.id) {
+                    s.attachInsertionView(to: cell, above: target.above)
+                }
+
+                // Do not animate when the previous value is nil
+                let duration = s.dragState.target == nil ? 0 : Constants.animationDuration / 2
+
+                UIView.animate(withDuration: duration) {
+                    self?.insertionView.alpha = 1
+                    s.tableView.layoutIfNeeded()
                 }
             }
             .store(in: &cancellables)

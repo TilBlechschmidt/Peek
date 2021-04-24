@@ -54,6 +54,10 @@ class TextBlockEditorCell: BlockEditorCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    required init() {
+        super.init()
+    }
+
     override var textContentView: UIView {
         textView
     }
@@ -90,6 +94,12 @@ class TextBlockEditorCell: BlockEditorCell {
         }
 
         return capturedCommands
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+
+        textView.text = ""
     }
 
     override func configureContent(in contentView: UIView) {

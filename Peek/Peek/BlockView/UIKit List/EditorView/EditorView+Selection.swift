@@ -18,7 +18,7 @@ extension BlockEditorViewController {
 }
 
 extension BlockEditorViewController: FocusEngineSelectionDelegate {
-    func focusEngine(didChangeSelectionBy delta: CollectionDifference<UUID>) {
+    func focusEngineDidChangeSelection(by delta: CollectionDifference<UUID>) {
         let changes = delta.reduce(into: (insertions: Set<UUID>(), removals: Set<UUID>())) { result, change in
             switch change {
             case .insert(_, let element, _):

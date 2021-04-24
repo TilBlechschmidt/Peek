@@ -10,6 +10,7 @@ import Combine
 import UIKit
 
 class BlockManager {
+    let instance = UUID()
     let blocks: CurrentValueSubject<[ContentBlock], Never> = CurrentValueSubject([])
 
     init(_ blocks: [ContentBlock] = []) {

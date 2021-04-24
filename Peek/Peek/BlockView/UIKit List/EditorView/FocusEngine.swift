@@ -57,7 +57,7 @@ class FocusEngine {
                 }
 
                 let delta = newSelection.difference(from: oldSelection)
-                selectionDelegate.focusEngine(didChangeSelectionBy: delta)
+                selectionDelegate.focusEngineDidChangeSelection(by: delta)
             }
         }
     }
@@ -392,7 +392,7 @@ class FocusEngine {
 }
 
 protocol FocusEngineSelectionDelegate: class {
-    func focusEngine(didChangeSelectionBy delta: CollectionDifference<UUID>)
+    func focusEngineDidChangeSelection(by delta: CollectionDifference<UUID>)
 }
 
 protocol FocusEngineDelegate: class {
